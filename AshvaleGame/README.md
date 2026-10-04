@@ -48,7 +48,7 @@ are generated.
 | Drag on the right half | Look around |
 | **FIRE** | Shoot / swing / punch / throw (depends on what is in your hands) |
 | **AIM** | Tap to toggle aiming (iron sights, red dot or scope) |
-| **RELOAD** | Reload the weapon in your hands |
+| **RELOAD** | Swap to your fullest magazine; with only loose rounds, refill the magazine (tap again to chamber) |
 | **JUMP** | Jump, or vault over fences, walls and through windows |
 | **CROUCH** / **RUN** | Toggle stance / sprint |
 | **USE** | Open doors, pick up items, drink from wells and pumps |
@@ -133,6 +133,13 @@ After adding or removing source files, regenerate the Xcode project with
   the gameplay tests (doors, stairs, collisions, vaulting, loot, inventory,
   magazines, shooting, infected, bleeding, eating, throwing, save/load, death,
   respawn).
+* `Tools/headless/run.sh soak` – randomized long-play test (default 20 simulated
+  minutes, `SOAK_MINUTES=…`): random movement, looting, inventory actions, combining,
+  throwing, weather/time jumps, save/load round trips, deaths and a combat phase.
+* `Tools/headless/run.sh bench` – per-frame CPU cost of simulation, scene building
+  and culling at each graphics quality.
+* `Tools/headless/run.sh frames` – software-rendered gameplay frames (first-person
+  rifle/pistol/fists, third person, interiors) into `Tools/headless/out/`.
 * `Tools/headless/run.sh preview` – software-rendered previews of the map, towns,
   interiors and characters into `Tools/headless/out/`.
 * `Tools/linuxcheck/check.sh` – typechecks every source file, including the UIKit,

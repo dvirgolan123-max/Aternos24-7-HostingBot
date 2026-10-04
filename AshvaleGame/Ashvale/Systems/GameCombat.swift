@@ -301,6 +301,17 @@ extension Game {
             sounds.play(.boltCycle, at: player.position, volume: 0.6)
             return
         }
+        // No loaded spare: top up a magazine from loose rounds (the one in the weapon first).
+        if let cal = w.caliber, let ammo = equipment.firstItem(where: { $0.def.ammo == cal }) {
+            if let m = h.magazine, let mp = m.def.magazine, m.quantity < mp.capacity {
+                loadRounds(ammoUID: ammo.uid, magazineUID: m.uid)
+                return
+            }
+            if let spare = mags.first(where: { $0.quantity < ($0.def.magazine?.capacity ?? 0) }) {
+                loadRounds(ammoUID: ammo.uid, magazineUID: spare.uid)
+                return
+            }
+        }
         let magName = ItemDB.get(magID)?.name ?? "magazine"
         if mags.isEmpty && h.magazine == nil {
             message("You need a \(magName)")

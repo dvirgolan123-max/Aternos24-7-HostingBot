@@ -35,6 +35,11 @@ if args.contains("frames") {
     renderGameFrames(world: world, registry: registry, outDir: outDir)
 }
 
+if args.contains("soak") {
+    let minutes = Float(ProcessInfo.processInfo.environment["SOAK_MINUTES"] ?? "20") ?? 20
+    runSoak(world: world, registry: registry, minutes: minutes)
+}
+
 if args.contains("bench") {
     runBench(world: world, registry: registry)
 }

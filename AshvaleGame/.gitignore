@@ -1,0 +1,15 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Headless tool output (renders, binaries)
+Tools/headless/out/
+Tools/headless/.build/
+Tools/linuxcheck/.build/
+*.ppm
+.DS_Store
+Tools/uipreview/.build/
+Tools/uipreview/out/

@@ -419,32 +419,32 @@ enum ItemDB {
         // MARK: Firearms
         add(ItemDef("warden", "M9 Warden", "Reliable 9×19mm service pistol. Uses Warden 15-round magazines.", .firearm, size: (2, 2), weight: 0.95, model: .pistolWarden)) {
             $0.weapon = WeaponProps(weaponClass: .pistol, caliber: .nine, magazineID: "mag_warden", modes: [.semi], damage: 34, rpm: 420, recoil: 0.035,
-                                    spread: 0.012, range: 60, muzzleVelocity: 360, noise: 110, attachSlots: [.muzzle, .rail], meleeDamage: 10,
+                                    spread: 0.009, range: 60, muzzleVelocity: 360, noise: 110, attachSlots: [.muzzle, .rail], meleeDamage: 10,
                                     sound: .gunPistol, reloadTime: 1.8, bleedChance: 0.35)
             $0.loot = [.police: 2.5, .military: 0.8, .bedroom: 0.15, .office: 0.2]
         }
         add(ItemDef("hollis", "Hollis .45", "Heavy-hitting .45 ACP pistol. Uses Hollis 8-round magazines.", .firearm, size: (2, 2), weight: 1.1, model: .pistolHollis)) {
             $0.weapon = WeaponProps(weaponClass: .pistol, caliber: .fortyFive, magazineID: "mag_hollis", modes: [.semi], damage: 48, rpm: 340, recoil: 0.06,
-                                    spread: 0.014, range: 55, muzzleVelocity: 260, noise: 120, attachSlots: [.rail], meleeDamage: 11,
+                                    spread: 0.011, range: 55, muzzleVelocity: 260, noise: 120, attachSlots: [.rail], meleeDamage: 11,
                                     sound: .gunPistol, reloadTime: 1.9, bleedChance: 0.45)
             $0.loot = [.police: 1.2, .bedroom: 0.12, .living: 0.08, .vehicle: 0.1]
         }
         add(ItemDef("wasp", "Wasp-9 SMG", "Compact 9×19mm submachine gun. Uses Wasp 30-round magazines.", .firearm, size: (3, 2), weight: 2.6, model: .smgWasp)) {
             $0.weapon = WeaponProps(weaponClass: .smg, caliber: .nine, magazineID: "mag_wasp", modes: [.auto, .semi], damage: 30, rpm: 820, recoil: 0.028,
-                                    spread: 0.016, range: 90, muzzleVelocity: 390, noise: 130, attachSlots: [.optic, .muzzle, .rail, .grip], meleeDamage: 13,
+                                    spread: 0.012, range: 90, muzzleVelocity: 390, noise: 130, attachSlots: [.optic, .muzzle, .rail, .grip], meleeDamage: 13,
                                     sound: .gunSMG, reloadTime: 2.2, bleedChance: 0.35)
             $0.loot = [.police: 0.7, .military: 0.9]
         }
         add(ItemDef("kestrel", "Kestrel AR", "5.56×45mm assault rifle. Uses Kestrel 30-round magazines.", .firearm, size: (5, 2), weight: 3.4, model: .rifleKestrel)) {
             $0.weapon = WeaponProps(weaponClass: .assaultRifle, caliber: .fiveFiveSix, magazineID: "mag_kestrel", modes: [.semi, .auto], damage: 44, rpm: 760, recoil: 0.03,
-                                    spread: 0.006, range: 350, muzzleVelocity: 900, noise: 300, attachSlots: [.optic, .muzzle, .rail, .grip], meleeDamage: 18,
+                                    spread: 0.0035, range: 350, muzzleVelocity: 900, noise: 300, attachSlots: [.optic, .muzzle, .rail, .grip], meleeDamage: 18,
                                     twoHanded: true, sound: .gunRifle, reloadTime: 2.4, bleedChance: 0.55)
             $0.loot = [.military: 1.4]
             $0.largeLoot = true
         }
         add(ItemDef("vanta", "Vanta-47", "Rugged 7.62×39mm assault rifle. Uses Vanta 30-round magazines.", .firearm, size: (5, 2), weight: 3.8, model: .rifleVanta)) {
             $0.weapon = WeaponProps(weaponClass: .assaultRifle, caliber: .sevenSixTwoShort, magazineID: "mag_vanta", modes: [.semi, .auto], damage: 52, rpm: 610, recoil: 0.045,
-                                    spread: 0.009, range: 300, muzzleVelocity: 715, noise: 320, attachSlots: [.optic, .rail, .grip], meleeDamage: 18,
+                                    spread: 0.005, range: 300, muzzleVelocity: 715, noise: 320, attachSlots: [.optic, .rail, .grip], meleeDamage: 18,
                                     twoHanded: true, sound: .gunRifle, reloadTime: 2.6, bleedChance: 0.6)
             $0.loot = [.military: 1.0, .police: 0.2]
             $0.largeLoot = true
@@ -458,7 +458,7 @@ enum ItemDB {
         }
         add(ItemDef("longreach", "Longreach M2", "Bolt-action 7.62×51mm precision rifle. Uses Longreach 5-round magazines.", .firearm, size: (6, 2), weight: 4.5, model: .sniperLongreach)) {
             $0.weapon = WeaponProps(weaponClass: .sniper, caliber: .sevenSixTwoLong, magazineID: "mag_longreach", modes: [.bolt], damage: 110, rpm: 45, recoil: 0.11,
-                                    spread: 0.0015, range: 800, muzzleVelocity: 850, noise: 450, attachSlots: [.optic, .muzzle], meleeDamage: 18,
+                                    spread: 0.001, range: 800, muzzleVelocity: 850, noise: 450, attachSlots: [.optic, .muzzle], meleeDamage: 18,
                                     twoHanded: true, sound: .gunSniper, reloadTime: 2.8, bleedChance: 0.8)
             $0.loot = [.military: 0.35, .farm: 0.2]
             $0.largeLoot = true

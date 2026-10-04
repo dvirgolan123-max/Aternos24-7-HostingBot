@@ -213,3 +213,74 @@ func runSoak(world: World, registry: MeshRegistry, minutes: Float) {
     print("  activity: " + counts.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }.joined(separator: " "))
     check(g.items.count < 20000, "world item count stays bounded (\(g.items.count))")
 }
+
+/// Aimed single shots at a stationary infected in the open at several ranges.
+func runAccuracy(world: World, registry: MeshRegistry) {
+    print("== Aimed fire accuracy")
+    ItemVisuals.registerAll(registry: registry)
+    let cm = CharacterMeshes.build(registry: registry)
+    let g = Game(world: world, registry: registry, characterMeshes: cm, seed: 77)
+    g.configure(server: ServerProfile.byID("regular"))
+    g.startNewGame()
+    g.ai.populationMultiplier = 0
+    g.ai.reset()
+    // Find a spot with a clear 60 m line of fire towards -Z (no colliders, no terrain crest).
+    var base = Vec3(1000, 0, 1100)
+    search: for gx in stride(from: Float(300), to: 1800, by: 37) {
+        for gz in stride(from: Float(300), to: 1800, by: 41) {
+            let gy = world.terrain.height(gx, gz)
+            let o = Vec3(gx, gy + 1.5, gz)
+            let far = Vec3(gx, world.terrain.height(gx, gz - 60) + 1.2, gz - 60)
+            let d = far - o
+            let len = vlength(d)
+            if world.isInWater(o) > 0 || world.isIndoors(o) { continue }
+            if world.collision.raycast(origin: o, direction: d / len, maxDistance: len, mask: .blocksBullets) != nil { continue }
+            if let t = world.terrain.raycast(origin: o, direction: d / len, maxDist: len), t < len - 0.5 { continue }
+            base = Vec3(gx, 0, gz)
+            break search
+        }
+    }
+    g.player.position = Vec3(base.x, world.groundHeight(at: base + Vec3(0, 300, 0)).height, base.z)
+    g.firstPerson = true
+    for (defID, magID) in [("kestrel", "mag_kestrel"), ("warden", "mag_warden")] {
+        for range: Float in [10, 25, 50] {
+            var hits = 0, shots = 0
+            for _ in 0..<12 {
+                let gun = ItemInstance(defID: defID)
+                gun.magazine = ItemInstance(defID: magID, quantity: 10)
+                gun.chambered = true
+                g.equipment.hands = gun
+                g.weapon = WeaponRuntime()
+                g.ai.reset()
+                let tp = g.player.position + flatForward(yaw: 0) * range
+                let inf = g.ai.spawn(.civilian, at: Vec3(tp.x, world.groundHeight(at: tp + Vec3(0, 3, 0)).height, tp.z), location: -1)
+                inf.yaw = kPi
+                g.input = InputState()
+                g.input.aimToggled = true
+                for _ in 0..<40 { g.update(dt: 1.0 / 60.0); g.buildScene(RenderScene(), dt: 1.0 / 60.0); inf.body.position = Vec3(tp.x, inf.body.position.y, tp.z) }
+                let aim = inf.joints.chestCenter - g.camPos
+                g.camYaw = yawFromDirection(aim.x, aim.z)
+                g.camPitch = atan2f(aim.y, vlength2(Vec2(aim.x, aim.z)))
+                let hp0 = inf.health
+                if ProcessInfo.processInfo.environment["DEBUG_COMBAT"] != nil && shots == 0 {
+                    let ray = g.aimRay
+                    let wh = world.collision.raycast(origin: ray.origin, direction: ray.dir, maxDistance: 600, mask: .blocksBullets)
+                    let th = world.terrain.raycast(origin: ray.origin, direction: ray.dir, maxDist: 600)
+                    let ah = g.ai.hitTest(origin: ray.origin, direction: ray.dir, maxDistance: 600)
+                    print("    dbg range \(range): cam \(g.camPos) chest \(inf.joints.chestCenter) agentPos \(inf.position) world \(wh.map { "\($0.distance)" } ?? "-") terrain \(th.map { "\($0)" } ?? "-") agent \(ah.map { "\($0.2) \($0.1)" } ?? "-") recoil \(g.recoilPitch) \(g.recoilYaw)")
+                }
+                g.input.fireHeld = true
+                g.input.firePressed = true
+                g.update(dt: 1.0 / 60.0)
+                g.input.fireHeld = false
+                g.input.firePressed = false
+                for _ in 0..<5 { g.update(dt: 1.0 / 60.0) }
+                shots += 1
+                if inf.health < hp0 || !inf.alive { hits += 1 }
+            }
+            print("  \(defID) at \(Int(range)) m: \(hits)/\(shots) hits")
+            if range == 10 { check(hits >= 10, "\(defID) hits reliably at 10 m (\(hits)/\(shots))") }
+            if range == 50 && defID == "kestrel" { check(hits >= 10, "aimed rifle hits at 50 m (\(hits)/\(shots))") }
+        }
+    }
+}

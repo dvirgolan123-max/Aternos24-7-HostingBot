@@ -136,6 +136,8 @@ After adding or removing source files, regenerate the Xcode project with
 * `Tools/headless/run.sh soak` – randomized long-play test (default 20 simulated
   minutes, `SOAK_MINUTES=…`): random movement, looting, inventory actions, combining,
   throwing, weather/time jumps, save/load round trips, deaths and a combat phase.
+* `Tools/headless/run.sh accuracy` – aimed single shots with a rifle and a pistol at
+  10, 25 and 50 m on a clear firing line.
 * `Tools/headless/run.sh bench` – per-frame CPU cost of simulation, scene building
   and culling at each graphics quality.
 * `Tools/headless/run.sh frames` – software-rendered gameplay frames (first-person

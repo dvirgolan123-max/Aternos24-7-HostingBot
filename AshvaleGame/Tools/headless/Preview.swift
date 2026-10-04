@@ -14,7 +14,14 @@ func renderScene(world: World, reg: MeshRegistry, eye: Vec3, target: Vec3, fov: 
     r.clear(Vec3(0.62, 0.7, 0.8))
     let view = Mat4.lookAt(eye: eye, target: target, up: Vec3(0, 1, 0))
     let proj = Mat4.perspectiveReverseZ(fovY: fov * kDegToRad, aspect: Float(w) / Float(h), near: 0.1)
-    let vp = proj * view
+    drawWorldGeometry(r, world: world, reg: reg, eye: eye, vp: proj * view, lodRadius: lodRadius, interiors: interiors, cutaway: cutaway)
+    r.savePPM(path)
+    print("wrote \(path)")
+}
+
+/// Draws terrain chunks, buildings, props, trees, doors and lakes visible from `eye`.
+func drawWorldGeometry(_ r: Raster, world: World, reg: MeshRegistry, eye: Vec3, vp: Mat4,
+                       lodRadius: Float = 200, interiors: Bool = true, cutaway: AABB? = nil) {
     let frustum = Frustum(viewProjection: vp)
     for cz in 0..<World.chunksPerSide {
         for cx in 0..<World.chunksPerSide {
@@ -59,8 +66,6 @@ func renderScene(world: World, reg: MeshRegistry, eye: Vec3, target: Vec3, fov: 
         let lm = ChunkMesher.lakeMesh(lake)
         r.drawMesh(vertices: lm.vertices, indices: lm.indices, model: .identity, viewProj: vp)
     }
-    r.savePPM(path)
-    print("wrote \(path)")
 }
 
 func renderMap(world: World, reg: MeshRegistry, path: String) {

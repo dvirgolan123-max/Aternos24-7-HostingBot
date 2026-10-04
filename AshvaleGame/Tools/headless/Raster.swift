@@ -21,6 +21,10 @@ final class Raster {
         for i in 0..<color.count { color[i] = c; depth[i] = 0 }
     }
 
+    func clearDepth() {
+        for i in 0..<depth.count { depth[i] = 0 }
+    }
+
     static func matColor(_ m: UInt8) -> Vec3 {
         switch Mat(rawValue: m) {
         case .grass: return Vec3(0.33, 0.42, 0.2)

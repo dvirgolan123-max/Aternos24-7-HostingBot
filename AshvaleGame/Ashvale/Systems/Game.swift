@@ -796,6 +796,7 @@ final class Game {
         // Player body.
         CharacterAnimator.emit(player.joints, player.appearance, meshes: characterMeshes, scene: scene, hideHead: firstPerson && player.alive)
         emitHeldItem(scene: scene)
+        emitFirstPersonFists(scene: scene)
         // Previous lives.
         for c in corpses where vdistance(c.position, cam.eye) < 200 {
             CharacterAnimator.emit(c.joints, c.appearance, meshes: characterMeshes, scene: scene)
@@ -874,7 +875,8 @@ final class Game {
         let a = aimBlend
         let bob = sinf(player.pose.phase) * 0.008 * min(player.pose.speed / 4, 1) * (1 - a)
         let sway = Vec3(sinf(swayTime * 1.1), sinf(swayTime * 1.7) * 0.6, 0) * (0.004 * stats.aimSway * (1 - a * 0.6))
-        let hip = Vec3(0.17, -0.17 + bob, -0.36)
+        let isPistol = equipment.hands.map { $0.def.model == .pistolWarden || $0.def.model == .pistolHollis } ?? false
+        let hip = isPistol ? Vec3(0.12, -0.15 + bob, -0.44) : Vec3(0.17, -0.17 + bob, -0.36)
         let ads = Vec3(0, -sightH, isFirearm ? -0.3 : -0.36)
         var local = vlerp(hip, ads, isFirearm ? a : a * 0.4) + sway
         if weapon.reloadT >= 0 { local += Vec3(0.02, -0.06, 0.04) * sinf(weapon.reloadT * kPi) }
@@ -886,18 +888,45 @@ final class Game {
         var m = camBasis * Mat4.translation(local)
         if weapon.reloadT >= 0 { m = m * Mat4.rotationZ(0.5 * sinf(weapon.reloadT * kPi)) }
         if weapon.meleeT >= 0 { m = m * Mat4.rotationX(-0.9 * sinf(weapon.meleeT * kPi)) }
-        // Place arms (via the body rig) on the view model.
+        // Place the forearms on the view model. Upper arms are never visible in first person, so each
+        // elbow is placed behind and below its hand instead of solving from body-proportioned shoulders
+        // (which could not reach a rifle's handguard).
         let g = ItemVisuals.geometry(equipment.hands?.def.model ?? .bat)
         let handR = m.transformPoint(Vec3(0, -0.02, 0.02))
         let handL = m.transformPoint(isFirearm ? g.support : Vec3(-0.05, -0.04, 0.05))
-        let shR = camBasis.transformPoint(Vec3(0.2, -0.32, 0.05)), shL = camBasis.transformPoint(Vec3(-0.2, -0.32, 0.05))
-        let pole = -up * 0.8 + right * 0.3
-        let (eR, hR) = CharacterAnimator.solveElbow(shoulder: shR, hand: handR, l1: 0.27, l2: 0.25, pole: pole + right * 0.4)
-        let (eL, hL) = CharacterAnimator.solveElbow(shoulder: shL, hand: handL, l1: 0.27, l2: 0.25, pole: pole - right * 0.6)
-        player.joints.forearmR = CharacterAnimator.segment(eR, hR, hint: dir)
-        player.joints.forearmL = CharacterAnimator.segment(eL, hL, hint: dir)
-        player.joints.handR = CharacterAnimator.segment(hR, hR + (hR - eR), hint: dir)
-        player.joints.handL = CharacterAnimator.segment(hL, hL + (hL - eL), hint: dir)
+        setViewModelArms(handR: handR, handL: handL, dir: dir, right: right, up: up)
         return m
+    }
+
+    /// Forearm and hand transforms for first-person arms reaching the given hand positions.
+    func setViewModelArms(handR: Vec3, handL: Vec3, dir: Vec3, right: Vec3, up: Vec3) {
+        let forearm: Float = 0.25
+        let eR = handR + vnormalize(-dir * 0.85 - up * 0.45 + right * 0.25) * forearm
+        let eL = handL + vnormalize(-dir * 0.8 - up * 0.45 - right * 0.4) * forearm
+        player.joints.forearmR = CharacterAnimator.segment(eR, handR, hint: dir)
+        player.joints.forearmL = CharacterAnimator.segment(eL, handL, hint: dir)
+        player.joints.handR = CharacterAnimator.segment(handR, handR + (handR - eR), hint: dir)
+        player.joints.handL = CharacterAnimator.segment(handL, handL + (handL - eL), hint: dir)
+    }
+
+    /// Fists in first person while punching (no item in hands).
+    func emitFirstPersonFists(scene: RenderScene) {
+        guard firstPerson, player.alive, equipment.hands == nil, weapon.meleeT >= 0 else { return }
+        let dir = directionFrom(yaw: camYaw, pitch: camPitch)
+        var right = vcross(dir, Vec3(0, 1, 0))
+        if vlengthSq(right) < 1e-5 { right = Vec3(1, 0, 0) }
+        right = vnormalize(right)
+        let up = vcross(right, dir)
+        let camBasis = Mat4.basis(right: right, up: up, back: -dir, origin: camPos)
+        let jab = sinf(weapon.meleeT * kPi)
+        let handR = camBasis.transformPoint(Vec3(0.13 - 0.08 * jab, -0.17 + 0.05 * jab, -0.3 - 0.22 * jab))
+        let handL = camBasis.transformPoint(Vec3(-0.15, -0.2, -0.32))
+        setViewModelArms(handR: handR, handL: handL, dir: dir, right: right, up: up)
+        let cm = characterMeshes
+        let j = player.joints
+        scene.addViewModel(cm.part(.forearm), InstanceData(model: j.forearmR, tint: armColor(), layer: Float(armLayer().rawValue)))
+        scene.addViewModel(cm.part(.forearm), InstanceData(model: j.forearmL, tint: armColor(), layer: Float(armLayer().rawValue)))
+        scene.addViewModel(cm.part(.hand), InstanceData(model: j.handR, tint: player.appearance.skin, layer: Float(Mat.skin.rawValue)))
+        scene.addViewModel(cm.part(.hand), InstanceData(model: j.handL, tint: player.appearance.skin, layer: Float(Mat.skin.rawValue)))
     }
 }

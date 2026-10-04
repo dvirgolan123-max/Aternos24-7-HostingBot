@@ -49,8 +49,13 @@ final class GameSettings {
     static let shared = GameSettings()
     private let d = UserDefaults.standard
 
+    /// First-launch graphics preset: older iPhones (3 GB of RAM or less) start on Low.
+    static var defaultQuality: QualityLevel {
+        ProcessInfo.processInfo.physicalMemory <= 3_300_000_000 ? .low : .medium
+    }
+
     var quality: QualityLevel {
-        get { QualityLevel(rawValue: d.object(forKey: "quality") as? Int ?? 1) ?? .medium }
+        get { QualityLevel(rawValue: d.object(forKey: "quality") as? Int ?? GameSettings.defaultQuality.rawValue) ?? .medium }
         set { d.set(newValue.rawValue, forKey: "quality") }
     }
     var showFPS: Bool {

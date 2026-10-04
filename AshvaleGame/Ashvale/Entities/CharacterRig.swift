@@ -617,9 +617,18 @@ enum CharacterAnimator {
 
     /// Emits render instances for a character.
     static func emit(_ j: CharacterJoints, _ a: Appearance, meshes cm: CharacterMeshes, scene: RenderScene,
-                     hideHead: Bool = false, shadow: Bool = true, highlight: Float = 0) {
+                     hideHead: Bool = false, hideArms: Bool = false, shadow: Bool = true, highlight: Float = 0) {
         func add(_ part: CharPart, _ m: Mat4, _ color: Vec3, _ layer: Mat, dirt: Float = 0) {
             scene.add(cm.part(part), InstanceData(model: m, tint: color, layer: Float(layer.rawValue), highlight: highlight, dirt: dirt), castsShadow: shadow)
+        }
+        // First person: the arms are drawn by the view model; the body's own arms only cast shadows.
+        func addArm(_ part: CharPart, _ m: Mat4, _ color: Vec3, _ layer: Mat, dirt: Float = 0) {
+            let inst = InstanceData(model: m, tint: color, layer: Float(layer.rawValue), highlight: highlight, dirt: dirt)
+            if hideArms {
+                if shadow { scene.addShadowOnly(cm.part(part), inst) }
+            } else {
+                scene.add(cm.part(part), inst, castsShadow: shadow)
+            }
         }
         let skin = a.skin
         let topBulky = a.top.bulky
@@ -641,13 +650,13 @@ enum CharacterAnimator {
         add(topBulky ? .chestBulky : .chest, j.chest, a.top.color, a.top.layer, dirt: td)
         add(.abdomen, j.pelvis * Mat4.translation(Vec3(0, 0.06, 0)), a.top.color, a.top.layer, dirt: td)
         add(.pelvis, j.pelvis, a.pants.color, a.pants.layer, dirt: a.pants.dirt)
-        add(topBulky ? .upperArmBulky : .upperArm, j.upperArmL, a.top.color, a.top.layer, dirt: td)
-        add(topBulky ? .upperArmBulky : .upperArm, j.upperArmR, a.top.color, a.top.layer, dirt: td)
+        addArm(topBulky ? .upperArmBulky : .upperArm, j.upperArmL, a.top.color, a.top.layer, dirt: td)
+        addArm(topBulky ? .upperArmBulky : .upperArm, j.upperArmR, a.top.color, a.top.layer, dirt: td)
         let sleeve = a.top.longSleeves
-        add(sleeve ? (topBulky ? .forearmBulky : .forearm) : .forearm, j.forearmL, sleeve ? a.top.color : skin, sleeve ? a.top.layer : .skin, dirt: sleeve ? td : 0)
-        add(sleeve ? (topBulky ? .forearmBulky : .forearm) : .forearm, j.forearmR, sleeve ? a.top.color : skin, sleeve ? a.top.layer : .skin, dirt: sleeve ? td : 0)
-        add(.hand, j.handL, skin, .skin)
-        add(.hand, j.handR, skin, .skin)
+        addArm(sleeve ? (topBulky ? .forearmBulky : .forearm) : .forearm, j.forearmL, sleeve ? a.top.color : skin, sleeve ? a.top.layer : .skin, dirt: sleeve ? td : 0)
+        addArm(sleeve ? (topBulky ? .forearmBulky : .forearm) : .forearm, j.forearmR, sleeve ? a.top.color : skin, sleeve ? a.top.layer : .skin, dirt: sleeve ? td : 0)
+        addArm(.hand, j.handL, skin, .skin)
+        addArm(.hand, j.handR, skin, .skin)
         add(.thigh, j.thighL, a.pants.color, a.pants.layer, dirt: a.pants.dirt)
         add(.thigh, j.thighR, a.pants.color, a.pants.layer, dirt: a.pants.dirt)
         add(.shin, j.shinL, a.pants.color, a.pants.layer, dirt: a.pants.dirt)

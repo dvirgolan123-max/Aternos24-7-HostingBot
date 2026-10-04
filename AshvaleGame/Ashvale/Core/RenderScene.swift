@@ -79,6 +79,12 @@ final class RenderScene {
         if castsShadow { shadowCasters.append(DrawItem(mesh: mesh, instance: instance)) }
     }
 
+    /// Casts a shadow without being drawn (e.g. the player's own arms in first person).
+    func addShadowOnly(_ mesh: MeshID, _ instance: InstanceData) {
+        guard mesh.isValid else { return }
+        shadowCasters.append(DrawItem(mesh: mesh, instance: instance))
+    }
+
     func addViewModel(_ mesh: MeshID, _ instance: InstanceData) {
         guard mesh.isValid else { return }
         viewModel.append(DrawItem(mesh: mesh, instance: instance))

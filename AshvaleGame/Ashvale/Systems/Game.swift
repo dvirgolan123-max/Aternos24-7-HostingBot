@@ -794,7 +794,8 @@ final class Game {
             scene.uniforms.flashlightDir = Vec4(d.x, d.y, d.z, 0.9)
         }
         // Player body.
-        CharacterAnimator.emit(player.joints, player.appearance, meshes: characterMeshes, scene: scene, hideHead: firstPerson && player.alive)
+        let fpBody = firstPerson && player.alive
+        CharacterAnimator.emit(player.joints, player.appearance, meshes: characterMeshes, scene: scene, hideHead: fpBody, hideArms: fpBody)
         emitHeldItem(scene: scene)
         emitFirstPersonFists(scene: scene)
         // Previous lives.

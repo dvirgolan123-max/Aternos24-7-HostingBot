@@ -7,6 +7,14 @@ func check(_ cond: Bool, _ msg: String) {
 }
 
 func runTests(world: World, registry: MeshRegistry) {
+    print("== GPU data layout (must match Shaders.metal and the vertex descriptor)")
+    check(MemoryLayout<Vertex>.stride == 44, "Vertex stride 44 (\(MemoryLayout<Vertex>.stride))")
+    check(MemoryLayout<Vertex>.offset(of: \Vertex.nx) == 12 && MemoryLayout<Vertex>.offset(of: \Vertex.u) == 24
+          && MemoryLayout<Vertex>.offset(of: \Vertex.color) == 32 && MemoryLayout<Vertex>.offset(of: \Vertex.material) == 36
+          && MemoryLayout<Vertex>.offset(of: \Vertex.weights) == 40, "Vertex attribute offsets 0/12/24/32/36/40")
+    check(MemoryLayout<FrameUniforms>.stride == 5 * 64 + 16 * 16, "FrameUniforms size 576 (\(MemoryLayout<FrameUniforms>.stride))")
+    check(MemoryLayout<InstanceData>.stride == 96, "InstanceData size 96 (\(MemoryLayout<InstanceData>.stride))")
+    check(MemoryLayout<ParticleInstance>.stride == 48, "ParticleInstance size 48 (\(MemoryLayout<ParticleInstance>.stride))")
     print("== Math")
     let m = Mat4.rotationY(0.7) * Mat4.translation(Vec3(1, 2, 3))
     let p = Vec3(0.3, -1, 2)

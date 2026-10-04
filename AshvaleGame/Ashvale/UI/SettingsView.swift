@@ -164,8 +164,10 @@ final class SettingsView: OverlayView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        let w = min(bounds.width - 60, 600), h = min(bounds.height - 24, 360)
-        panel.frame = CGRect(x: bounds.midX - w / 2, y: bounds.midY - h / 2, width: w, height: h)
+        let ins = safeAreaInsets
+        let top = max(ins.top, 10), bottom = max(ins.bottom, 10)
+        let w = min(bounds.width - 60, 600), h = min(bounds.height - top - bottom, 360)
+        panel.frame = CGRect(x: bounds.midX - w / 2, y: top + (bounds.height - top - bottom - h) / 2, width: w, height: h)
         header.frame = CGRect(x: 20, y: 12, width: 300, height: 24)
         back.frame = CGRect(x: w - 16 - 100, y: 10, width: 100, height: 30)
         scroll.frame = CGRect(x: 0, y: 46, width: w, height: h - 52)

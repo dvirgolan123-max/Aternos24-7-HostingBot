@@ -172,12 +172,15 @@ final class MainMenuView: OverlayView {
         title.frame = CGRect(x: left, y: h * 0.1, width: 420, height: 56 * scale)
         subtitle.frame = CGRect(x: left + 4, y: title.frame.maxY, width: 400, height: 18)
         rule.frame = CGRect(x: left + 4, y: subtitle.frame.maxY + 10, width: 150, height: 1)
-        var y = rule.frame.maxY + 16 * scale
-        let bh = 40 * scale
+        var y = rule.frame.maxY + 12 * scale
+        // Fit the five buttons between the title block and the server/version lines at the bottom.
+        let gap = 4 * scale
+        let bottomLimit = h - max(ins.bottom, 10) - 40
+        let bh = max(28, min(40 * scale, (bottomLimit - y - 10 - gap * 4) / 5))
         for b in [newGame, continueGame, servers, settings, credits] {
             let tall = b === continueGame
             b.frame = CGRect(x: left - 14, y: y, width: 380, height: tall ? bh + 10 : bh)
-            y += (tall ? bh + 10 : bh) + 4 * scale
+            y += (tall ? bh + 10 : bh) + gap
         }
         serverLabel.frame = CGRect(x: left, y: h - max(ins.bottom, 10) - 34, width: 420, height: 14)
         version.frame = CGRect(x: left, y: h - max(ins.bottom, 10) - 18, width: 300, height: 12)
@@ -418,8 +421,10 @@ final class ServersView: OverlayView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        let w = min(bounds.width - 60, 640), h = min(bounds.height - 30, 360)
-        panel.frame = CGRect(x: bounds.midX - w / 2, y: bounds.midY - h / 2, width: w, height: h)
+        let ins = safeAreaInsets
+        let top = max(ins.top, 12), bottom = max(ins.bottom, 12)
+        let w = min(bounds.width - 60, 640), h = min(bounds.height - top - bottom, 360)
+        panel.frame = CGRect(x: bounds.midX - w / 2, y: top + (bounds.height - top - bottom - h) / 2, width: w, height: h)
         header.frame = CGRect(x: 20, y: 14, width: w - 40, height: 24)
         note.frame = CGRect(x: 20, y: 38, width: w - 40, height: 14)
         var y: CGFloat = 60
@@ -558,8 +563,9 @@ final class DeathView: OverlayView {
 
     func configure(cause c: String, survived: Float, kills: Int, distance: Float) {
         cause.attributedText = Theme.tracked(c.uppercased(), size: 13, weight: .bold, color: Theme.text, kern: 3)
-        let m = Int(survived / 60), s = Int(survived) % 60
-        stats.attributedText = Theme.tracked("SURVIVED \(m)M \(s)S   ·   INFECTED KILLED \(kills)   ·   TRAVELLED \(Int(distance))M\nYOUR BODY AND GEAR REMAIN WHERE YOU FELL.",
+        let total = Int(survived), hrs = total / 3600, m = (total % 3600) / 60, s = total % 60
+        let time = hrs > 0 ? "\(hrs)H \(m)M" : "\(m)M \(s)S"
+        stats.attributedText = Theme.tracked("SURVIVED \(time)   ·   INFECTED KILLED \(kills)   ·   TRAVELLED \(Int(distance))M\nYOUR BODY AND GEAR REMAIN WHERE YOU FELL.",
                                              size: 10, weight: .semibold, color: Theme.textDim, kern: 1.5)
     }
 

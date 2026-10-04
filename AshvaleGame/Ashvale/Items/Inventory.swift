@@ -57,7 +57,9 @@ final class ItemInstance: Codable {
         uid = ItemInstance.makeUID()
         self.defID = defID
         let d = ItemDB.get(defID)
-        self.quantity = quantity ?? (d?.medicalUses ?? 1)
+        // Defaults: magazines and refillable bottles start empty, everything else is a single unit.
+        let empty = d?.magazine != nil || d?.food?.liquidContainer == true
+        self.quantity = quantity ?? (empty ? 0 : (d?.medicalUses ?? 1))
         self.condition = condition
         if let c = d?.clothing?.cargo {
             cargo = Container(width: c.w, height: c.h)

@@ -40,6 +40,14 @@ enum Theme {
         return l
     }
 
+    /// Soft dark glow behind HUD text so it stays readable over bright sky and snow.
+    static func textShadow(_ v: UIView) {
+        v.layer.shadowColor = UIColor.black.cgColor
+        v.layer.shadowOpacity = 0.75
+        v.layer.shadowRadius = 2
+        v.layer.shadowOffset = CGSize(width: 0, height: 1)
+    }
+
     static func stylePanel(_ v: UIView, radius: CGFloat = 10) {
         v.backgroundColor = panel
         v.layer.cornerRadius = radius

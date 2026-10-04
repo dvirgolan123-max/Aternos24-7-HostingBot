@@ -316,14 +316,14 @@ final class InventoryView: OverlayView, UIGestureRecognizerDelegate {
             v.subviews.filter { $0 is ItemTileView }.forEach { $0.removeFromSuperview() }
             if let it = e.item(s) {
                 let t = makeTile(it, rotated: false, vicinity: false, worldID: nil, showName: false)
-                t.frame = v.bounds.insetBy(dx: 3, dy: 3).offsetBy(dx: 0, dy: 4).insetBy(dx: 0, dy: 2)
+                t.frame = CGRect(x: 3, y: 13, width: v.bounds.width - 6, height: max(10, v.bounds.height - 16))
                 v.addSubview(t)
             }
         }
         handsView.subviews.filter { $0 is ItemTileView }.forEach { $0.removeFromSuperview() }
         if let h = e.hands {
             let t = makeTile(h, rotated: false, vicinity: false, worldID: nil, showName: false)
-            t.frame = handsView.bounds.insetBy(dx: 3, dy: 3).offsetBy(dx: 0, dy: 4).insetBy(dx: 0, dy: 2)
+            t.frame = CGRect(x: 3, y: 13, width: handsView.bounds.width - 6, height: max(10, handsView.bounds.height - 16))
             handsView.addSubview(t)
         }
         // Quick slots.
@@ -409,7 +409,9 @@ final class InventoryView: OverlayView, UIGestureRecognizerDelegate {
     private func updateStatus() {
         let s = game.stats
         let w = game.equipment.totalWeight
-        weightLabel.text = String(format: "WEIGHT %.1f kg   ·   %@", w, game.action?.label.uppercased() ?? "")
+        var head = String(format: "WEIGHT %.1f kg", w)
+        if let a = game.action { head += "   ·   " + a.label.uppercased() }
+        weightLabel.text = head
         var lines: [String] = []
         lines.append(String(format: "Health %.0f%%   Blood %.0f ml", s.health, s.blood))
         lines.append(String(format: "Energy %.0f kcal   Water %.0f ml", s.energy, s.water))

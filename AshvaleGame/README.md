@@ -144,6 +144,11 @@ After adding or removing source files, regenerate the Xcode project with
   rifle/pistol/fists, third person, interiors) into `Tools/headless/out/`.
 * `Tools/headless/run.sh preview` – software-rendered previews of the map, towns,
   interiors and characters into `Tools/headless/out/`.
+* `Tools/uipreview/run.sh` – runs the real UIKit layout code of every screen (menu,
+  HUD, inventory, settings, servers, pause, death, loading, intro, credits) on
+  functional UIKit stand-ins at iPhone SE, iPhone 14 and Pro Max sizes and renders
+  PNG previews with safe-area guides into `Tools/uipreview/out/`, reporting text
+  that overflows its label.
 * `Tools/linuxcheck/check.sh` – typechecks every source file, including the UIKit,
   Metal, MetalKit and AVFoundation code, against signature stubs.
 * `python3 Tools/linuxcheck/msl/check_metal.py Ashvale/Shaders/Shaders.metal` –

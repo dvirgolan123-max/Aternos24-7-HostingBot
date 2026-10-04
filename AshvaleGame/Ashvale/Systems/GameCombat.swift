@@ -436,6 +436,7 @@ extension Game {
 
     func dropAgentLoot(_ a: Agent) {
         var r = rng
+        defer { rng = r }   // advance the game RNG so every body drops different loot
         if a.kind == .bandit {
             let gun = ItemInstance(defID: "vanta", condition: r.range(0.3, 0.7))
             let mag = ItemInstance(defID: "mag_vanta", condition: r.range(0.4, 0.9))

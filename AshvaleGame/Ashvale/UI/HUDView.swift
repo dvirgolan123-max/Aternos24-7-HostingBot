@@ -155,6 +155,9 @@ final class HUDView: UIView {
         compassLabel.textAlignment = .center
         compassLabel.isUserInteractionEnabled = false
         addSubview(compassLabel)
+        for l in [messages, effectsLabel, ammoLabel, banner, bannerSub, compassLabel, actionLabel, fpsLabel, controls.promptLabel] {
+            Theme.textShadow(l)
+        }
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -170,7 +173,7 @@ final class HUDView: UIView {
         crosshair.frame = CGRect(x: bounds.midX - 2, y: bounds.midY - 2, width: 4, height: 4)
         redDot.frame = CGRect(x: bounds.midX - 2.5, y: bounds.midY - 2.5, width: 5, height: 5)
         hitMarker.frame = CGRect(x: bounds.midX - 15, y: bounds.midY - 15, width: 30, height: 30)
-        fpsLabel.frame = CGRect(x: bounds.midX - 120, y: top, width: 240, height: 14)
+        fpsLabel.frame = CGRect(x: bounds.midX - 120, y: top + 34, width: 240, height: 14)
         banner.frame = CGRect(x: 0, y: bounds.height * 0.18, width: bounds.width, height: 34)
         bannerSub.frame = CGRect(x: 0, y: bounds.height * 0.18 + 34, width: bounds.width, height: 18)
         // Status column (top-left).
@@ -187,11 +190,18 @@ final class HUDView: UIView {
         inventoryButton.frame = CGRect(x: right - bw * 2 - 8, y: top, width: bw, height: bh)
         cameraButton.frame = CGRect(x: right - bw * 3 - 16, y: top, width: bw, height: bh)
         ammoLabel.frame = CGRect(x: right - 220, y: top + bh + 6, width: 220, height: 40)
-        let qsW: CGFloat = min(330, bounds.width * 0.38)
-        quickSlots.frame = CGRect(x: bounds.midX - qsW * 0.5 - 40, y: bounds.height - max(ins.bottom, 6) - 50, width: qsW, height: 46)
-        actionLabel.frame = CGRect(x: bounds.midX - 160, y: bounds.midY + 46, width: 320, height: 16)
-        actionBar.frame = CGRect(x: bounds.midX - 80, y: bounds.midY + 66, width: 160, height: 3)
-        compassLabel.frame = CGRect(x: bounds.midX - 100, y: top + 16, width: 200, height: 16)
+        // Quick slots sit bottom-centre but must end left of the right-hand button cluster.
+        controls.layoutIfNeeded()
+        let clusterLeft = controls.buttons.values.map { $0.frame.minX }.min() ?? bounds.width * 0.6
+        let maxRight = min(clusterLeft - 12, bounds.midX + 150)
+        let qsW = max(200, min(300, maxRight - left - 20))
+        let qsH: CGFloat = 46
+        quickSlots.frame = CGRect(x: maxRight - qsW, y: bounds.height - max(ins.bottom, 6) - qsH - 4, width: qsW, height: qsH)
+        // Timed-action label and bar just above the quick slots.
+        actionLabel.frame = CGRect(x: quickSlots.frame.minX, y: quickSlots.frame.minY - 26, width: qsW, height: 14)
+        actionBar.frame = CGRect(x: quickSlots.frame.midX - 80, y: quickSlots.frame.minY - 9, width: 160, height: 3)
+        // Narrow enough to stay clear of the status column on 4.7" phones.
+        compassLabel.frame = CGRect(x: max(bounds.midX - 60, statusStack.frame.maxX + 8), y: top + 16, width: 120, height: 16)
         controls.reservedRects = [pauseButton.frame, inventoryButton.frame, cameraButton.frame, quickSlots.frame, ammoLabel.frame]
     }
 

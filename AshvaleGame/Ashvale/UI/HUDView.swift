@@ -212,7 +212,7 @@ final class HUDView: UIView {
     }
 
     func setMessages(_ list: [HUDMessage]) {
-        let text = NSMutableAttributedString()
+        let text = NSMutableAttributedString(string: "")
         for (i, m) in list.enumerated() {
             let alpha = CGFloat(min(1, m.time / 0.6))
             let color = m.important ? Theme.accent.withAlphaComponent(alpha) : UIColor(white: 0.95, alpha: alpha)

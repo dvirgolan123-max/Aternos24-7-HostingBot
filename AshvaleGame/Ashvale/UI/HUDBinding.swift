@@ -34,7 +34,7 @@ extension Game {
         if s.bodyTemp < 35.5 { effects.append(("FREEZING", UIColor(red: 0.55, green: 0.8, blue: 1, alpha: 1))) }
         if s.pain > 0.4 && s.painkillers <= 0 && s.morphine <= 0 { effects.append(("PAIN", Theme.accent)) }
         if equipment.totalWeight > 25 { effects.append(("OVERLOADED", Theme.accent)) }
-        let e = NSMutableAttributedString()
+        let e = NSMutableAttributedString(string: "")
         for (i, (t, c)) in effects.enumerated() {
             e.append(Theme.tracked(t + (i < effects.count - 1 ? "   " : ""), size: 9, weight: .heavy, color: c, kern: 1.2))
         }

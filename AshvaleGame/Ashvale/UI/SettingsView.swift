@@ -61,7 +61,7 @@ final class SettingsView: OverlayView {
         seg.selectedSegmentIndex = selected
         seg.selectedSegmentTintColor = Theme.accent
         seg.setTitleTextAttributes([.foregroundColor: UIColor.white, .font: Theme.font(11, .bold)], for: .normal)
-        seg.addAction(UIAction { _ in onSelect(seg.selectedSegmentIndex) }, for: .valueChanged)
+        seg.addAction(UIAction { [weak seg] _ in onSelect(seg?.selectedSegmentIndex ?? 0) }, for: .valueChanged)
         row.addSubview(seg)
         scroll.addSubview(row)
         rows.append(row)
@@ -86,8 +86,9 @@ final class SettingsView: OverlayView {
         v.textAlignment = .right
         v.text = format(value)
         row.addSubview(v)
-        sl.addAction(UIAction { _ in
-            v.text = format(sl.value)
+        sl.addAction(UIAction { [weak sl, weak v] _ in
+            guard let sl = sl else { return }
+            v?.text = format(sl.value)
             onChange(sl.value)
         }, for: .valueChanged)
         scroll.addSubview(row)
@@ -103,7 +104,7 @@ final class SettingsView: OverlayView {
         sw.tag = 2
         sw.isOn = value
         sw.onTintColor = Theme.accent
-        sw.addAction(UIAction { _ in onChange(sw.isOn) }, for: .valueChanged)
+        sw.addAction(UIAction { [weak sw] _ in onChange(sw?.isOn ?? false) }, for: .valueChanged)
         row.addSubview(sw)
         scroll.addSubview(row)
         rows.append(row)

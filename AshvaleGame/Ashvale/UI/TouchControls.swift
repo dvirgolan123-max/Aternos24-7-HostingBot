@@ -75,12 +75,13 @@ final class ActionButtonView: UIView {
         ring.backgroundColor = isPressed ? base.withAlphaComponent(0.85) : base
         ring.layer.borderColor = (isActive ? Theme.accent : UIColor(white: 1, alpha: 0.35)).cgColor
         alpha = isDimmed ? 0.4 : 1
-        transform = isPressed ? CGAffineTransform(scaleX: 0.92, y: 0.92) : .identity
+        ring.transform = isPressed ? CGAffineTransform(scaleX: 0.92, y: 0.92) : .identity
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        ring.frame = bounds
+        ring.bounds = CGRect(origin: .zero, size: bounds.size)
+        ring.center = CGPoint(x: bounds.midX, y: bounds.midY)
         ring.layer.cornerRadius = bounds.width * 0.5
         caption.frame = bounds.insetBy(dx: 5, dy: 0)
     }

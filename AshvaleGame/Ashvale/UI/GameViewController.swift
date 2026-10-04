@@ -570,19 +570,27 @@ final class GameViewController: UIViewController, MTKViewDelegate {
         }
     }
 
+    private var hudAccum: Float = 1
+
     private func updateHUD(dt: Float) {
         guard let g = game, let h = hud else { return }
-        h.controls.setPrompt(g.hud.prompt)
-        h.setMessages(g.hud.messages)
+        // Cheap per-frame state.
         h.setDamage(g.hud.damageFlash)
         if g.hud.hitMarker > 0.9 { h.flashHit() }
         let scope = g.hud.showScope
-        h.scopeOverlay.isHidden = !scope
-        if !scope && h.scopeOverlay.isHidden == false { h.scopeOverlay.setNeedsDisplay() }
-        if scope { h.scopeOverlay.setNeedsDisplay() }
+        if h.scopeOverlay.isHidden == scope {
+            h.scopeOverlay.isHidden = !scope
+            if scope { h.scopeOverlay.setNeedsDisplay() }
+        }
         let crosshairAllowed = g.server.crosshairAllowed && GameSettings.shared.showCrosshair
         h.crosshair.isHidden = !(crosshairAllowed && !scope && !g.hud.showRedDot) || !g.player.alive
         h.redDot.isHidden = !g.hud.showRedDot || scope
+        // Text and indicators are rebuilt at ~15 Hz to keep UIKit work off the frame budget.
+        hudAccum += dt
+        if hudAccum < 1.0 / 15.0 { return }
+        hudAccum = 0
+        h.controls.setPrompt(g.hud.prompt)
+        h.setMessages(g.hud.messages)
         if let b = g.hud.locationBanner, b != lastBanner, g.hud.locationTimer > 3.5 {
             lastBanner = b
             h.showBanner(b, subtitle: g.world.location(at: g.player.position).map { kindName($0.kind) } ?? "")

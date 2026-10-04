@@ -350,7 +350,7 @@ final class ServersView: OverlayView {
         panel.addSubview(note)
         for (i, p) in ServerProfile.all.enumerated() {
             let row = UIControl()
-            row.tag = i
+            row.tag = 100 + i   // keep clear of the child label tags (1...3); viewWithTag also matches the view itself
             row.layer.cornerRadius = 8
             row.layer.borderWidth = 1
             row.addTarget(self, action: #selector(rowTapped(_:)), for: .touchUpInside)
@@ -389,7 +389,7 @@ final class ServersView: OverlayView {
 
     @objc private func rowTapped(_ sender: UIControl) {
         Haptics.tap()
-        selected = ServerProfile.all[sender.tag].id
+        selected = ServerProfile.all[sender.tag - 100].id
         ServerProfile.selectedID = selected
         refresh()
     }
@@ -450,7 +450,7 @@ final class CreditsView: OverlayView {
         addSubview(scroll)
         text.numberOfLines = 0
         text.textAlignment = .center
-        let s = NSMutableAttributedString()
+        let s = NSMutableAttributedString(string: "")
         func head(_ t: String) { s.append(Theme.tracked("\n" + t + "\n", size: 11, weight: .bold, color: Theme.accent, kern: 4)) }
         func line(_ t: String) { s.append(NSAttributedString(string: t + "\n", attributes: [.font: Theme.font(14, .medium), .foregroundColor: Theme.text])) }
         s.append(Theme.tracked("ASHVALE\n", size: 30, weight: .heavy, kern: 10))

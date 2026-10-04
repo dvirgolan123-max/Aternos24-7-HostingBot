@@ -273,8 +273,13 @@ final class InventoryView: OverlayView, UIGestureRecognizerDelegate {
         return s
     }
 
+    private var refreshTick = 0
+
+    /// Called every frame while open; checks for changes a few times per second.
     func refreshIfNeeded() {
         if dragUID != nil { return }
+        refreshTick += 1
+        if refreshTick % 8 != 0 { return }
         let sig = computeSignature()
         if sig != signature {
             rebuild()

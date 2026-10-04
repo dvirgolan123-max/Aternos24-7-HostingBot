@@ -346,8 +346,13 @@ final class AudioEngine {
 
     init() {}
 
+    private var starting = false
+    private var restartCooldown: Float = 0
+
+    /// Configures the session and engine, then synthesizes every sound on a background queue.
     func start() {
-        guard !started else { return }
+        guard !started, !starting else { return }
+        starting = true
         do {
             try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [])
             try AVAudioSession.sharedInstance().setActive(true)
@@ -366,15 +371,29 @@ final class AudioEngine {
         engine.connect(windNode, to: engine.mainMixerNode, format: fmt)
         engine.attach(rainNode)
         engine.connect(rainNode, to: engine.mainMixerNode, format: fmt)
-        // Synthesize every sound (a few variants for frequent ones).
-        for id in SoundID.allCases {
-            let variants: Int
-            switch id {
-            case .footstepGrass, .footstepConcrete, .footstepWood, .infectedIdle, .infectedAlert, .infectedAttack, .bulletImpact: variants = 3
-            default: variants = 1
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            // Synthesize every sound (a few variants for frequent ones).
+            var made: [Int: [AVAudioPCMBuffer]] = [:]
+            for id in SoundID.allCases {
+                let variants: Int
+                switch id {
+                case .footstepGrass, .footstepConcrete, .footstepWood, .infectedIdle, .infectedAlert, .infectedAttack, .bulletImpact: variants = 3
+                default: variants = 1
+                }
+                made[id.rawValue] = (0..<variants).compactMap { AudioEngine.makeBuffer(Synth.make(id, variant: $0), format: fmt) }
             }
-            buffers[id.rawValue] = (0..<variants).compactMap { makeBuffer(Synth.make(id, variant: $0), format: fmt) }
+            let result = made
+            DispatchQueue.main.async { self?.finishStart(result) }
         }
+    }
+
+    private func finishStart(_ made: [Int: [AVAudioPCMBuffer]]) {
+        buffers = made
+        starting = false
+        startEngine()
+    }
+
+    private func startEngine() {
         do {
             try engine.start()
             started = true
@@ -383,19 +402,31 @@ final class AudioEngine {
             return
         }
         if let w = buffers[SoundID.ambienceWind.rawValue]?.first {
+            windNode.stop()
             windNode.scheduleBuffer(w, at: nil, options: .loops, completionHandler: nil)
             windNode.volume = 0
             windNode.play()
         }
         if let r = buffers[SoundID.rainLoop.rawValue]?.first {
+            rainNode.stop()
             rainNode.scheduleBuffer(r, at: nil, options: .loops, completionHandler: nil)
             rainNode.volume = 0
             rainNode.play()
         }
     }
 
-    private func makeBuffer(_ samples: [Float], format: AVAudioFormat) -> AVAudioPCMBuffer? {
-        guard let b = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count)) else { return nil }
+    /// The engine stops on interruptions (calls, route changes); bring it back when possible.
+    private func ensureRunning(dt: Float) {
+        guard started, !engine.isRunning else { return }
+        restartCooldown -= dt
+        if restartCooldown > 0 { return }
+        restartCooldown = 1
+        try? AVAudioSession.sharedInstance().setActive(true)
+        startEngine()
+    }
+
+    private static func makeBuffer(_ samples: [Float], format: AVAudioFormat) -> AVAudioPCMBuffer? {
+        guard !samples.isEmpty, let b = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count)) else { return nil }
         b.frameLength = AVAudioFrameCount(samples.count)
         if let ch = b.floatChannelData {
             samples.withUnsafeBufferPointer { src in
@@ -420,7 +451,7 @@ final class AudioEngine {
     }
 
     private func play(_ id: SoundID, volume: Float, pan: Float) {
-        guard started, let list = buffers[id.rawValue], !list.isEmpty, let p = nextPlayer() else { return }
+        guard started, engine.isRunning, let list = buffers[id.rawValue], !list.isEmpty, let p = nextPlayer() else { return }
         let b = list[Int.random(in: 0..<list.count)]
         p.stop()
         p.volume = min(1, volume * masterVolume)
@@ -446,7 +477,8 @@ final class AudioEngine {
     }
 
     func update(listener: Vec3, forward: Vec3, events: [SoundEvent], game: Game) {
-        guard started else { return }
+        ensureRunning(dt: 1.0 / 60)
+        guard started, engine.isRunning else { return }
         let right = vnormalize(vcross(forward, Vec3(0, 1, 0)))
         for e in events {
             guard let p = e.position else {

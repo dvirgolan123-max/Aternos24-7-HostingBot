@@ -10,70 +10,160 @@ import Foundation
 
 final class NavGrid {
     let world: World
-    private var chunks: [Int: [UInt8]] = [:]          // 0 = walkable, 1 = blocked
-    private var doorCells: [Int: [Int: [Int]]] = [:]  // chunk -> cell -> door indices
+    /// One byte per 1 m cell over the whole map: 0 walkable, 1 blocked, 2 walkable unless a closed door is there.
+    private var cells: [UInt8]
+    private var built: [Bool]
+    private var doorCells: [Int: [Int]] = [:]      // global cell -> door indices
     private let cellsPerChunk = 64
-    private var buildQueue: [Int] = []
+    private let side: Int
+    // Incremental (budgeted) chunk building.
+    private var pendingChunk = -1
+    private var pendingRow = 0
+    private(set) var builtChunks = 0
+    /// Path searches allowed per frame across all agents (reset by `beginFrame`).
+    private(set) var searchesLeft = 3
 
     init(world: World) {
         self.world = world
+        side = Int(World.size)
+        cells = [UInt8](repeating: 0, count: side * side)
+        built = [Bool](repeating: false, count: World.chunksPerSide * World.chunksPerSide)
     }
 
     @inline(__always) private func chunkKey(_ cx: Int, _ cz: Int) -> Int { cz * World.chunksPerSide + cx }
 
-    private func buildChunk(_ cx: Int, _ cz: Int) {
+    func beginFrame() { searchesLeft = 3 }
+
+    private var passageCacheKey = -1
+    private var passageCache: [NavPassage] = []
+
+    /// Door and doorway passages touching a chunk (cached for the chunk being built).
+    private func passages(_ cx: Int, _ cz: Int) -> [NavPassage] {
         let key = chunkKey(cx, cz)
-        var cells = [UInt8](repeating: 0, count: cellsPerChunk * cellsPerChunk)
-        var doors: [Int: [Int]] = [:]
-        let ox = Float(cx) * World.chunkSize, oz = Float(cz) * World.chunkSize
-        for j in 0..<cellsPerChunk {
-            for i in 0..<cellsPerChunk {
-                let x = ox + Float(i) + 0.5, z = oz + Float(j) + 0.5
-                let th = world.terrain.height(x, z)
-                let g = world.groundHeight(at: Vec3(x, th + 0.6, z), radius: 0.2, stepHeight: 0.0).height
-                var blocked = false
-                let q = AABB(min: Vec3(x - 0.35, g + 0.45, z - 0.35), max: Vec3(x + 0.35, g + 1.6, z + 0.35))
-                world.collision.forEach(in: q) { _, c in
-                    if c.door >= 0 {
-                        doors[j * cellsPerChunk + i, default: []].append(Int(c.door))
-                    } else if c.flags.contains(.solid) {
-                        blocked = true
-                    }
-                }
-                // Steep terrain is not walkable.
-                if !blocked {
-                    let n = world.terrain.normal(x, z)
-                    if n.y < 0.72 && g - th < 0.1 { blocked = true }
-                }
-                if world.isInWater(Vec3(x, g + 0.1, z)) > 1.0 { blocked = true }
-                cells[j * cellsPerChunk + i] = blocked ? 1 : 0
-            }
-        }
-        chunks[key] = cells
-        doorCells[key] = doors
+        if key == passageCacheKey { return passageCache }
+        let x0 = Float(cx) * World.chunkSize - 2, z0 = Float(cz) * World.chunkSize - 2
+        let x1 = x0 + World.chunkSize + 4, z1 = z0 + World.chunkSize + 4
+        passageCache = world.passages.filter { $0.center.x >= x0 && $0.center.x <= x1 && $0.center.z >= z0 && $0.center.z <= z1 }
+        passageCacheKey = key
+        return passageCache
     }
 
-    /// Ensures nav data exists for chunks around a point (spread over frames by callers).
+    /// Classifies one row of cells of a chunk.
+    private func buildRow(_ cx: Int, _ cz: Int, row j: Int) {
+        let ox = Float(cx) * World.chunkSize, oz = Float(cz) * World.chunkSize
+        let gz = cz * cellsPerChunk + j
+        let ps = passages(cx, cz)
+        for i in 0..<cellsPerChunk {
+            let gx = cx * cellsPerChunk + i
+            let x = ox + Float(i) + 0.5, z = oz + Float(j) + 0.5
+            let th = world.terrain.height(x, z)
+            let g = world.groundHeight(at: Vec3(x, th + 0.6, z), radius: 0.2, stepHeight: 0.0).height
+            var blocked = false
+            var doors: [Int] = []
+            let q = AABB(min: Vec3(x - 0.25, g + 0.45, z - 0.25), max: Vec3(x + 0.25, g + 1.6, z + 0.25))
+            world.collision.forEach(in: q) { _, c in
+                if c.door >= 0 {
+                    doors.append(Int(c.door))
+                } else if c.flags.contains(.solid) {
+                    blocked = true
+                }
+            }
+            // Steep terrain is not walkable.
+            if !blocked {
+                let n = world.terrain.normal(x, z)
+                if n.y < 0.72 && g - th < 0.1 { blocked = true }
+            }
+            if !blocked && world.isInWater(Vec3(x, g + 0.1, z)) > 1.0 { blocked = true }
+            // Doorways are narrower than a cell's clearance test at some grid alignments: carve a
+            // strip through every floor-level opening so rooms stay connected.
+            for p in ps where abs(p.center.y - g) < 1.2 {
+                let dx = x - p.center.x, dz = z - p.center.z
+                let along = dx * p.across.x + dz * p.across.z
+                let lateral = dz * p.across.x - dx * p.across.z
+                if abs(along) <= 0.9 && abs(lateral) <= max(0.5, p.width * 0.5) + 0.25 {
+                    blocked = false
+                    if p.door >= 0 && !doors.contains(p.door) { doors.append(p.door) }
+                }
+            }
+            let ci = gz * side + gx
+            if blocked {
+                cells[ci] = 1
+            } else if !doors.isEmpty {
+                cells[ci] = 2
+                doorCells[ci] = doors
+            } else {
+                cells[ci] = 0
+            }
+        }
+    }
+
+    /// Finishes building a chunk synchronously (used when a search reaches an unbuilt chunk).
+    private func buildChunk(_ cx: Int, _ cz: Int) {
+        let key = chunkKey(cx, cz)
+        if built[key] { return }
+        let first = pendingChunk == key ? pendingRow : 0
+        for j in first..<cellsPerChunk { buildRow(cx, cz, row: j) }
+        if pendingChunk == key { pendingChunk = -1 }
+        built[key] = true
+        builtChunks += 1
+    }
+
+    /// Ensures nav data exists for chunks around a point right now (loading screens, spawning).
     func prepare(around p: Vec3, radius: Int = 1) {
         let cx0 = Int(p.x / World.chunkSize), cz0 = Int(p.z / World.chunkSize)
         for dz in -radius...radius {
             for dx in -radius...radius {
                 let cx = cx0 + dx, cz = cz0 + dz
                 if cx < 0 || cz < 0 || cx >= World.chunksPerSide || cz >= World.chunksPerSide { continue }
-                if chunks[chunkKey(cx, cz)] == nil { buildChunk(cx, cz) }
+                buildChunk(cx, cz)
             }
         }
     }
 
-    func isWalkable(_ gx: Int, _ gz: Int) -> Bool {
-        let n = Int(World.size)
-        if gx < 0 || gz < 0 || gx >= n || gz >= n { return false }
-        let cx = gx / cellsPerChunk, cz = gz / cellsPerChunk
-        let key = chunkKey(cx, cz)
-        if chunks[key] == nil { buildChunk(cx, cz) }
-        let li = (gz % cellsPerChunk) * cellsPerChunk + (gx % cellsPerChunk)
-        if chunks[key]![li] != 0 { return false }
-        if let ds = doorCells[key]?[li] {
+    /// Builds missing chunks near the player a few rows per frame so searches never stall a frame.
+    func warm(around p: Vec3, radius: Int = 2, rowBudget: Int = 6) {
+        var rows = rowBudget
+        while rows > 0 {
+            if pendingChunk < 0 {
+                // Pick the nearest unbuilt chunk in range.
+                let cx0 = Int(p.x / World.chunkSize), cz0 = Int(p.z / World.chunkSize)
+                var best = -1
+                var bestD = Int.max
+                for dz in -radius...radius {
+                    for dx in -radius...radius {
+                        let cx = cx0 + dx, cz = cz0 + dz
+                        if cx < 0 || cz < 0 || cx >= World.chunksPerSide || cz >= World.chunksPerSide { continue }
+                        let k = chunkKey(cx, cz)
+                        if built[k] { continue }
+                        let d = dx * dx + dz * dz
+                        if d < bestD { bestD = d; best = k }
+                    }
+                }
+                if best < 0 { return }
+                pendingChunk = best
+                pendingRow = 0
+            }
+            let cx = pendingChunk % World.chunksPerSide, cz = pendingChunk / World.chunksPerSide
+            buildRow(cx, cz, row: pendingRow)
+            pendingRow += 1
+            rows -= 1
+            if pendingRow >= cellsPerChunk {
+                built[pendingChunk] = true
+                builtChunks += 1
+                pendingChunk = -1
+            }
+        }
+    }
+
+    @inline(__always) func isWalkable(_ gx: Int, _ gz: Int) -> Bool {
+        if gx < 0 || gz < 0 || gx >= side || gz >= side { return false }
+        let key = chunkKey(gx / cellsPerChunk, gz / cellsPerChunk)
+        if !built[key] { buildChunk(gx / cellsPerChunk, gz / cellsPerChunk) }
+        let ci = gz * side + gx
+        let v = cells[ci]
+        if v == 0 { return true }
+        if v == 1 { return false }
+        if let ds = doorCells[ci] {
             for d in ds where !world.doors[d].isOpen && abs(world.doors[d].angle) < 0.8 { return false }
         }
         return true
@@ -121,7 +211,8 @@ final class NavGrid {
     }
 
     /// A* from a to b on ground level. Returns world-space waypoints (without the start).
-    func findPath(from a: Vec3, to b: Vec3, maxNodes: Int = 5000) -> [Vec3]? {
+    func findPath(from a: Vec3, to b: Vec3, maxNodes: Int = 2500) -> [Vec3]? {
+        searchesLeft -= 1
         let sx = Int(a.x), sz = Int(a.z)
         var tx = Int(b.x), tz = Int(b.z)
         if !isWalkable(tx, tz) {

@@ -50,6 +50,16 @@ struct LootSpotSpec {
     var large: Bool
 }
 
+/// A floor-level opening people can walk through (door, doorway, wide opening), for AI navigation.
+struct NavPassageSpec {
+    var center: Vec3
+    /// Unit direction through the opening (wall normal).
+    var across: Vec3
+    var width: Float
+    /// Index into the model's doors, or -1 for an open doorway.
+    var door: Int
+}
+
 struct DoorSpec {
     /// Hinge position at the bottom of the door.
     var hinge: Vec3
@@ -80,6 +90,7 @@ final class BuildingModel {
     var waterPoints: [Vec3] = []
     /// Stair waypoint chains (bottom -> ... -> top) used by AI navigation.
     var stairs: [[Vec3]] = []
+    var passages: [NavPassageSpec] = []
     var footprint = Vec2(10, 10)
     var height: Float = 6
 
@@ -216,16 +227,20 @@ final class BuildingBuilder {
 
         // Frames, doors, plugs.
         for o in ops {
+            let center = axis == .x ? Vec3(o.center, y0, fixed) : Vec3(fixed, y0, o.center)
+            let across = axis == .x ? Vec3(0, 0, 1) : Vec3(1, 0, 0)
             switch o.kind {
             case .window:
                 addWindowFrame(axis: axis, fixed: fixed, thickness: t, o: o, y0: y0, exterior: exterior, outsideSign: outsideSign)
             case .door(let ds):
                 addDoorFrame(axis: axis, fixed: fixed, thickness: t, o: o, y0: y0)
                 addDoor(axis: axis, fixed: fixed, o: o, y0: y0, exterior: exterior, outsideSign: outsideSign, style: ds)
+                model.passages.append(NavPassageSpec(center: center, across: across, width: o.width, door: model.doors.count - 1))
             case .doorway:
                 addDoorFrame(axis: axis, fixed: fixed, thickness: t, o: o, y0: y0)
+                model.passages.append(NavPassageSpec(center: center, across: across, width: o.width, door: -1))
             case .wideOpening:
-                break
+                model.passages.append(NavPassageSpec(center: center, across: across, width: o.width, door: -1))
             }
         }
     }

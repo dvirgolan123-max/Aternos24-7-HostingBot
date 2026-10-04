@@ -31,6 +31,10 @@ if args.contains("tests") {
     runSystemTests(world: world, registry: registry)
 }
 
+if args.contains("bench") {
+    runBench(world: world, registry: registry)
+}
+
 if args.contains("preview") {
     renderPreviews(world: world, registry: registry, outDir: outDir)
 }

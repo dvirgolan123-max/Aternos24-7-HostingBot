@@ -578,7 +578,8 @@ final class Game {
     func updateAI(dt: Float) {
         let p = player
         ai.managePopulation(dt: dt, player: p.position)
-        if Int(gameTime * 4) % 4 == 0 { ai.nav.prepare(around: p.position, radius: 1) }
+        ai.nav.beginFrame()
+        ai.nav.warm(around: p.position)
         let target = AITarget(position: p.position, chest: p.position + Vec3(0, p.body.stance == .crouched ? 0.8 : 1.3, 0),
                               crouched: p.body.stance == .crouched, sprinting: p.sprinting, noiseRadius: p.lastNoiseRadius,
                               alive: p.alive, building: world.buildingAt(p.position + Vec3(0, 0.5, 0)),

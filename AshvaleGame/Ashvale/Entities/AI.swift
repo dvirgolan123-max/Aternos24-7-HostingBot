@@ -485,13 +485,17 @@ final class AIManager {
             return
         }
         a.repathTimer -= dt
-        if a.path.isEmpty || a.repathTimer <= 0 || vdistanceXZ(a.path.last ?? goal, goal) > 3 {
-            a.repathTimer = 1.4 + rng.range(0, 0.6)
+        // Searches are rationed per frame; agents that miss out keep their old path and retry next frame.
+        let goalMoved = !a.path.isEmpty && vdistanceXZ(a.path.last ?? goal, goal) > 3
+        if (a.repathTimer <= 0 || goalMoved) && nav.searchesLeft > 0 {
             if let p = nav.findPath(from: a.position, to: goal) {
                 a.path = p
                 a.pathIndex = 0
+                a.repathTimer = 1.4 + rng.range(0, 0.6)
             } else {
+                // Unreachable for now (closed door, upstairs): don't hammer the search.
                 a.path = []
+                a.repathTimer = 3 + rng.range(0, 1.5)
             }
         }
         if a.pathIndex < a.path.count {

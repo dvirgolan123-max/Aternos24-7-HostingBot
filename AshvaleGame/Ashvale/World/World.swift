@@ -34,6 +34,14 @@ struct DoorState {
     }
 }
 
+struct NavPassage {
+    var center: Vec3
+    var across: Vec3
+    var width: Float
+    /// World door index, or -1 for an open doorway.
+    var door: Int
+}
+
 struct WorldLootSpot {
     var position: Vec3
     var category: LootCategory
@@ -66,6 +74,8 @@ final class World {
     var sidewalks: [AABB] = []
     /// World-space stair waypoint chains per building index.
     var buildingStairs: [Int: [[Vec3]]] = [:]
+    /// World-space walkable openings (doors and doorways) used to keep the nav grid connected.
+    var passages: [NavPassage] = []
     var fields: [(min: Vec2, max: Vec2)] = []
 
     // Per-chunk instance lists for culling.

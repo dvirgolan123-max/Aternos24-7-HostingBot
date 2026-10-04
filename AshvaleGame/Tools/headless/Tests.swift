@@ -114,7 +114,52 @@ func runGameTests(world: World, registry: MeshRegistry) {
         let side = vdot(game.player.position - f.position, n)
         check(side > 0.2, "vaulted over fence (side \(side))")
     }
-    // 5. Day/night: advance time.
+    // 5. Infected navigation: chase through the open front door, blocked by a closed one.
+    do {
+        game.ai.reset()
+        game.ai.populationMultiplier = 0
+        let inside = m.transformPoint(Vec3(-1.5, 0, -2.0))
+        func runChase(seconds: Float) -> (reached: Bool, indoors: Bool) {
+            game.player.position = Vec3(inside.x, b.position.y + 0.05, inside.z)
+            game.player.body.velocity = Vec3(0, 0, 0)
+            game.stats.health = 100
+            game.stats.blood = SurvivorStats.maxBlood
+            game.stats.bleeds.removeAll()
+            let out = m.transformPoint(Vec3(3.6, 0, 16))
+            let a = game.ai.spawn(.civilian, at: Vec3(out.x, world.groundHeight(at: out + Vec3(0, 3, 0)).height, out.z), location: 0)
+            a.state = .chase
+            a.awareness = 1.5
+            a.lastSeen = game.player.position
+            var t: Float = 0
+            var reached = false
+            while t < seconds && a.alive {
+                game.input.move = Vec2(0, 0)
+                game.update(dt: 1.0 / 60.0)
+                game.player.position = Vec3(inside.x, game.player.position.y, inside.z)
+                a.awareness = 1.5
+                a.lastSeen = game.player.position
+                if vdistanceXZ(a.position, game.player.position) < 1.8 { reached = true }
+                if ProcessInfo.processInfo.environment["DEBUG_NAV"] != nil && Int(t * 60) % 60 == 0 {
+                    let lp = m.inverse.transformPoint(a.position)
+                    print(String(format: "    t=%.0f local=(%.1f, %.2f, %.1f) state=\(a.state) path=\(a.path.count) idx=\(a.pathIndex) aware=%.2f", t, lp.x, lp.y, lp.z, a.awareness))
+                }
+                t += 1.0 / 60.0
+            }
+            let indoors = world.isIndoors(a.position + Vec3(0, 0.5, 0))
+            game.ai.reset()
+            return (reached, indoors)
+        }
+        for (di, d) in world.doors.enumerated() where d.building == bi { world.setDoor(di, open: true, immediate: true) }
+        let open = runChase(seconds: 16)
+        check(open.reached, "infected pathed through the open door to the player")
+        for (di, d) in world.doors.enumerated() where d.building == bi { world.setDoor(di, open: false, immediate: true) }
+        let closed = runChase(seconds: 10)
+        check(!closed.reached && !closed.indoors, "closed doors keep the infected out")
+        for (di, d) in world.doors.enumerated() where d.building == bi { world.setDoor(di, open: true, immediate: true) }
+        game.ai.populationMultiplier = 1
+        game.stats.health = 100
+    }
+    // 6. Day/night: advance time.
     game.env.hour = 23.5
     game.buildScene(scene, dt: 0.016)
     check(scene.uniforms.sunDir.w < 0.5 && scene.uniforms.moonDir.w > 0.5, "night lighting uses the moon")

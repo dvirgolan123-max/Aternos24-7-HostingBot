@@ -686,6 +686,11 @@ final class WorldGenerator {
             for c in model.colliders {
                 world.collision.add(c.box.transformed(m), c.flags, c.surface)
             }
+            let doorBase = world.doors.count
+            for p in model.passages {
+                world.passages.append(NavPassage(center: m.transformPoint(p.center), across: vnormalize(m.transformDirection(p.across)),
+                                                 width: p.width, door: p.door >= 0 ? doorBase + p.door : -1))
+            }
             for d in model.doors {
                 let hinge = m.transformPoint(d.hinge)
                 let yaw = Float(b.rotation) * kPi * 0.5 + d.closedYaw

@@ -26,7 +26,7 @@ enum ActionKind: Int, CaseIterable {
         case .jump: return "JUMP"
         case .crouch: return "CROUCH"
         case .run: return "RUN"
-        case .interact: return "USE"
+        case .interact: return "INTERACT"
         }
     }
 

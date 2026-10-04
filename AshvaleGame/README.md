@@ -51,7 +51,7 @@ are generated.
 | **RELOAD** | Swap to your fullest magazine; with only loose rounds, refill the magazine (tap again to chamber) |
 | **JUMP** | Jump, or vault over fences, walls and through windows |
 | **CROUCH** / **RUN** | Toggle stance / sprint |
-| **USE** | Open doors, pick up items, drink from wells and pumps |
+| **INTERACT** | Open doors, pick up items, drink from wells and pumps |
 | **GEAR** | Inventory |
 | **1P/3P** | Switch camera (not on first-person-only servers) |
 | Quick slots | Tap to take an item into your hands, long-press to clear |

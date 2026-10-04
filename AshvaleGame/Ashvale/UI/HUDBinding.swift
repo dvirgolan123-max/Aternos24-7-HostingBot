@@ -51,7 +51,7 @@ extension Game {
                 let magText = held.magazine == nil && w.internalCapacity == 0 ? "NO MAG" : "\(magRounds)/\(cap)"
                 let t = NSMutableAttributedString(attributedString: Theme.tracked(magText, size: 20, weight: .heavy, kern: 1))
                 t.append(Theme.tracked(held.chambered ? " +1" : " +0", size: 11, weight: .bold, color: held.chambered ? Theme.text : Theme.danger, kern: 0))
-                t.append(Theme.tracked("\n\(d.name.uppercased())  ·  \(mode)\(weapon.jammed ? "  ·  JAMMED" : "")", size: 9, weight: .bold, color: weapon.jammed ? Theme.danger : Theme.textDim, kern: 1.2))
+                t.append(Theme.tracked("\n\(d.name.uppercased())  ·  \(mode)\(weapon.jammed ? "  ·  JAMMED" : "")", size: 9, weight: .bold, color: weapon.jammed ? Theme.danger : UIColor(white: 0.88, alpha: 0.95), kern: 1.2))
                 h.ammoLabel.attributedText = t
                 c.buttons[.fire]?.setCaption("FIRE")
                 c.buttons[.reload]?.isDimmed = false
